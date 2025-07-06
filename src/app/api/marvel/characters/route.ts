@@ -84,10 +84,18 @@ export async function GET(request: NextRequest) {
       // Validate response structure
       if (!response || !response.data || !Array.isArray(response.data.results)) {
         console.error('Invalid API response structure:', response);
-        return NextResponse.json(
-          { error: 'Invalid API response structure' },
-          { status: 500 }
-        );
+        return NextResponse.json({
+          code: 500,
+          status: 'Error',
+          data: {
+            offset: 0,
+            limit: 0,
+            total: 0,
+            count: 0,
+            results: []
+          },
+          error: 'Invalid API response structure'
+        });
       }
       
       return NextResponse.json(response);
@@ -100,16 +108,35 @@ export async function GET(request: NextRequest) {
         return getMockCharactersResponse(query, limit, offset, featured);
       }
       
-      return NextResponse.json(
-        { error: 'Error communicating with Marvel API' },
-        { status: 500 }
-      );
+      // For any other error, return a properly structured response with error info
+      // This ensures client components can still parse the response
+      return NextResponse.json({
+        code: 500,
+        status: 'Error',
+        data: {
+          offset: 0,
+          limit: 0,
+          total: 0,
+          count: 0,
+          results: []
+        },
+        error: 'Error communicating with Marvel API'
+      });
     }
   } catch (error) {
     console.error('Error fetching Marvel characters:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch Marvel characters' },
-      { status: 500 }
-    );
+    // Return a properly structured response with error info
+    return NextResponse.json({
+      code: 500,
+      status: 'Error',
+      data: {
+        offset: 0,
+        limit: 0,
+        total: 0,
+        count: 0,
+        results: []
+      },
+      error: 'Failed to fetch Marvel characters'
+    });
   }
 }

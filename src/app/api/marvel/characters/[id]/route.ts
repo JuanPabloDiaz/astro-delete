@@ -77,13 +77,30 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         return getMockCharacterResponse(id, includeComics, includeSeries);
       }
       
-      throw error; // Re-throw to be caught by the outer try/catch
+      // Return a properly structured error response that client components can parse
+      return NextResponse.json({
+        code: 500,
+        status: 'Error',
+        character: {
+          data: {
+            results: []
+          }
+        },
+        error: 'Error communicating with Marvel API'
+      });
     }
   } catch (error) {
     console.error('Error fetching character details:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch character details' },
-      { status: 500 }
-    );
+    // Return a properly structured error response
+    return NextResponse.json({
+      code: 500,
+      status: 'Error',
+      character: {
+        data: {
+          results: []
+        }
+      },
+      error: 'Failed to fetch character details'
+    });
   }
 }
