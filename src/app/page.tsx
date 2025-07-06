@@ -7,14 +7,19 @@ export default function Home() {
     <div className="flex flex-col gap-8 py-4">
       {/* Hero Section */}
       <section className="relative h-[50vh] min-h-[400px] w-full overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent z-10"></div>
-        <Image
-          src="/marvel-heroes.jpg"
-          alt="Marvel Heroes"
-          fill
-          className="object-cover"
-          priority
-        />
+        <div className="absolute inset-0 bg-gradient-to-r from-[var(--marvel-red)] via-[#333] to-[#111] z-0"></div>
+        {/* Marvel logo overlay */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-10 z-0">
+          <div className="w-3/4 h-3/4 relative">
+            <Image
+              src="/marvel-logo.svg"
+              alt="Marvel Logo"
+              fill
+              className="object-contain"
+            />
+          </div>
+        </div>
+        <div className="absolute inset-0 bg-black/30 z-5"></div>
         <div className="relative z-20 h-full flex flex-col justify-center px-6 md:px-12 max-w-4xl">
           <h1 className="comic-title text-4xl md:text-6xl text-white mb-4">
             Explore the Marvel Universe

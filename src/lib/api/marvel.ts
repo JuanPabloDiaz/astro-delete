@@ -5,6 +5,13 @@ import { MarvelApiParams, MarvelResponse, MarvelCharacter, MarvelComic, MarvelSe
 const BASE_URL = 'https://gateway.marvel.com/v1/public';
 
 /**
+ * Checks if Marvel API keys are configured
+ */
+export const hasApiKeys = (): boolean => {
+  return !!(process.env.MARVEL_PUBLIC_KEY && process.env.MARVEL_PRIVATE_KEY);
+};
+
+/**
  * Generates authentication parameters required for Marvel API calls
  */
 const getAuthParams = () => {
@@ -29,6 +36,11 @@ const getAuthParams = () => {
  * Makes a secure request to the Marvel API
  */
 const marvelFetch = async <T>(endpoint: string, params: MarvelApiParams = {}): Promise<MarvelResponse<T>> => {
+  // Check if API keys are configured
+  if (!hasApiKeys()) {
+    throw new Error('MARVEL_API_KEYS_MISSING');
+  }
+  
   try {
     const authParams = getAuthParams();
     const url = `${BASE_URL}${endpoint}`;
