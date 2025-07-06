@@ -14,21 +14,49 @@ const FeaturedCharacters = () => {
     const fetchFeaturedCharacters = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/marvel/characters?featured=true');
+        setError(null); // Clear any previous errors
         
+        // Add a timeout to the fetch to prevent hanging forever
+        const fetchWithTimeout = async () => {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+          
+          try {
+            const response = await fetch('/api/marvel/characters?featured=true', {
+              signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            return response;
+          } catch (error) {
+            clearTimeout(timeoutId);
+            throw error;
+          }
+        };
+        
+        const response = await fetchWithTimeout();
         const data = await response.json();
         
         // Check if data has the expected structure
         if (!data || !data.data || !Array.isArray(data.data.results)) {
           console.error('Unexpected API response format:', data);
-          setError('Received unexpected data format from the API');
+          // Check if there's an error message in the response
+          if (data && data.error) {
+            setError(`API Error: ${data.error}`);
+          } else {
+            setError('Received unexpected data format from the API');
+          }
           return;
         }
         
         setCharacters(data.data.results);
       } catch (err) {
         console.error('Failed to fetch featured characters:', err);
-        setError('Failed to load featured characters. Please try again later.');
+        // More descriptive error messages based on error type
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          setError('Request timed out. The server took too long to respond.');
+        } else {
+          setError('Failed to load featured characters. Please try again later.');
+        }
       } finally {
         setLoading(false);
       }

@@ -15,7 +15,9 @@ export const hasApiKeys = (): boolean => {
  * Generates authentication parameters required for Marvel API calls
  */
 const getAuthParams = () => {
+  // For production, use a timestamp that changes with each request
   const timestamp = Date.now().toString();
+  
   const publicKey = process.env.MARVEL_PUBLIC_KEY || '';
   const privateKey = process.env.MARVEL_PRIVATE_KEY || '';
   
@@ -23,7 +25,13 @@ const getAuthParams = () => {
     throw new Error('Marvel API keys are not configured. Please check your environment variables.');
   }
   
-  const hash = md5(timestamp + privateKey + publicKey);
+  // Create hash according to Marvel API requirements
+  // Marvel requires: md5(ts+privateKey+publicKey)
+  const stringToHash = `${timestamp}${privateKey}${publicKey}`;
+  const hash = md5(stringToHash);
+  
+  // Debug log - minimal logging for security
+  console.log('Marvel API Auth: Using timestamp', timestamp);
   
   return {
     ts: timestamp,
@@ -55,8 +63,11 @@ const marvelFetch = async <T>(endpoint: string, params: MarvelApiParams = {}): P
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
+      // Log API errors with useful information but without exposing sensitive data
+      console.error(`Marvel API error: ${error.response.status} - ${error.response.data.message || error.message}`);
       throw new Error(`Marvel API Error: ${error.response.status} - ${error.response.data.message || error.message}`);
     }
+    console.error('Marvel API request failed:', error instanceof Error ? error.message : 'Unknown error');
     throw new Error('Failed to fetch data from Marvel API');
   }
 };
