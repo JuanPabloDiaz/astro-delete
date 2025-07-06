@@ -49,27 +49,55 @@ const marvelFetch = async <T>(endpoint: string, params: MarvelApiParams = {}): P
     throw new Error('MARVEL_API_KEYS_MISSING');
   }
   
-  try {
-    const authParams = getAuthParams();
-    const url = `${BASE_URL}${endpoint}`;
-    
-    const response = await axios.get<MarvelResponse<T>>(url, {
-      params: {
-        ...authParams,
-        ...params,
-      },
-    });
-    
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
-      // Log API errors with useful information but without exposing sensitive data
-      console.error(`Marvel API error: ${error.response.status} - ${error.response.data.message || error.message}`);
-      throw new Error(`Marvel API Error: ${error.response.status} - ${error.response.data.message || error.message}`);
+  // Maximum number of retries for 504 errors
+  const maxRetries = 2;
+  let retries = 0;
+  
+  while (retries <= maxRetries) {
+    try {
+      const authParams = getAuthParams();
+      const url = `${BASE_URL}${endpoint}`;
+      
+      // Add timeout to avoid hanging requests
+      const response = await axios.get<MarvelResponse<T>>(url, {
+        params: {
+          ...authParams,
+          ...params,
+        },
+        // Set a reasonable timeout (10 seconds)
+        timeout: 10000,
+      });
+      
+      return response.data;
+    } catch (error) {
+      const isAxiosError = axios.isAxiosError(error);
+      const responseStatus = isAxiosError && error.response ? error.response.status : null;
+      
+      // Handle 504 Gateway Timeout errors with retries
+      if (isAxiosError && responseStatus === 504 && retries < maxRetries) {
+        console.warn(`Marvel API timeout (504), retrying... (${retries + 1}/${maxRetries})`);
+        retries++;
+        // Wait before retrying (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retries)));
+        continue;
+      }
+      
+      // Handle other errors
+      if (isAxiosError && error.response) {
+        console.error(`Marvel API error: ${responseStatus} - ${error.response.data.message || error.message}`);
+        throw new Error(`Marvel API Error: ${responseStatus} - ${error.response.data.message || error.message}`);
+      } else if (isAxiosError && error.code === 'ECONNABORTED') {
+        console.error('Marvel API request timed out');
+        throw new Error('Marvel API request timed out. Please try again later.');
+      }
+      
+      console.error('Marvel API request failed:', error instanceof Error ? error.message : 'Unknown error');
+      throw new Error('Failed to fetch data from Marvel API');
     }
-    console.error('Marvel API request failed:', error instanceof Error ? error.message : 'Unknown error');
-    throw new Error('Failed to fetch data from Marvel API');
   }
+  
+  // This should never be reached due to the throw in the catch block
+  throw new Error('Maximum retries exceeded for Marvel API request');
 };
 
 /**
